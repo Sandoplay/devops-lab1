@@ -39,9 +39,5 @@ public class IntegrationService {
     return restTemplate.getForObject(url, Object.class);
   }
 
-  @Cacheable("currency")
-  public Object getCurrency() {
-    logger.info("Виконання HTTP-запиту до API НБУ для отримання поточного курсу валют");
-    return restTemplate.getForObject(currencyUrl, Object.class);
-  }
+
 }
