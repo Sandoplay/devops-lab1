@@ -14,14 +14,12 @@ public class IntegrationService {
   private static final Logger logger = LoggerFactory.getLogger(IntegrationService.class);
   private final RestTemplate restTemplate;
 
-  @Value("${api.openweather.key}")
+  @Value("${OPENWEATHER_API_KEY}")
   private String openWeatherKey;
 
   @Value("${api.openweather.url}")
   private String openWeatherUrl;
 
-  @Value("${api.currency.url}")
-  private String currencyUrl;
 
   public IntegrationService(RestTemplate restTemplate) {
     this.restTemplate = restTemplate;

@@ -19,8 +19,4 @@ public class ApiController {
     return integrationService.getWeather(city);
   }
 
-  @GetMapping("/currency")
-  public Object getCurrency() {
-    return integrationService.getCurrency();
-  }
 }
