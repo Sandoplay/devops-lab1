@@ -1,13 +1,13 @@
 package edu.levytskyi.lab1api.service;
 
+import edu.levytskyi.lab1api.entity.CityTranslation;
+import edu.levytskyi.lab1api.repository.CityTranslationRepository;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,39 +16,16 @@ public class DiscordMessageListener extends ListenerAdapter {
 
   private static final Logger logger = LoggerFactory.getLogger(DiscordMessageListener.class);
   private final IntegrationService integrationService;
+  private final CityTranslationRepository cityTranslationRepository;
 
-  // Регулярний вираз для української та англійської мов
-  // Група 1: український запит (після "в"/"у")
-  // Група 2: англійський запит (після "in")
   private static final Pattern WEATHER_PATTERN = Pattern.compile(
       "(?i).*(?:погод[ауі]\\s+[ву]|weather\\s+in)\\s+([а-яіїєґa-z-]+).*",
       Pattern.UNICODE_CHARACTER_CLASS
   );
 
-  private static final Map<String, String> CITY_TRANSLATION_MAP = new HashMap<>();
-
-  static {
-    // Карта перекладу та нормалізації (Українська -> English для OpenWeather)
-    CITY_TRANSLATION_MAP.put("києві", "Kyiv");
-    CITY_TRANSLATION_MAP.put("київ", "Kyiv");
-    CITY_TRANSLATION_MAP.put("львові", "Lviv");
-    CITY_TRANSLATION_MAP.put("львів", "Lviv");
-    CITY_TRANSLATION_MAP.put("одесі", "Odesa");
-    CITY_TRANSLATION_MAP.put("одеса", "Odesa");
-    CITY_TRANSLATION_MAP.put("харкові", "Kharkiv");
-    CITY_TRANSLATION_MAP.put("харків", "Kharkiv");
-    CITY_TRANSLATION_MAP.put("дніпрі", "Dnipro");
-    CITY_TRANSLATION_MAP.put("дніпро", "Dnipro");
-    CITY_TRANSLATION_MAP.put("чернівцях", "Chernivtsi");
-    CITY_TRANSLATION_MAP.put("чернівці", "Chernivtsi");
-    CITY_TRANSLATION_MAP.put("лондоні", "London");
-    CITY_TRANSLATION_MAP.put("лондон", "London");
-    CITY_TRANSLATION_MAP.put("парижі", "Paris");
-    CITY_TRANSLATION_MAP.put("париж", "Paris");
-  }
-
-  public DiscordMessageListener(IntegrationService integrationService) {
+  public DiscordMessageListener(IntegrationService integrationService, CityTranslationRepository cityTranslationRepository) {
     this.integrationService = integrationService;
+    this.cityTranslationRepository = cityTranslationRepository;
   }
 
   @Override
@@ -69,7 +46,12 @@ public class DiscordMessageListener extends ListenerAdapter {
     String lowerCaseContent = content.toLowerCase().trim();
 
     if (lowerCaseContent.startsWith("/start")) {
-      return "Вітаю! Я розумію команди `/weather [місто]`, а також фрази типу `яка погода в Києві` або `weather in London`.";
+      return "Доступні команди:\n" +
+          "`/weather [місто]` — отримання даних про погоду.\n" +
+          "`/addcity [назва1, назва2...] [english_name]` — збереження перекладу міста. Допускається введення кількох українських варіацій через кому або пробіл (приклад: `/addcity лужани лужанах luzhany`).\n" +
+          "Також підтримується розпізнавання міст у вільному тексті, наприклад: `яка погода в Києві`.";
+    } else if (lowerCaseContent.startsWith("/addcity")) {
+      return processAddCityCommand(content);
     } else if (lowerCaseContent.startsWith("/weather")) {
       String city = content.substring(8).trim();
       if (city.isEmpty()) return "Вкажіть назву міста. Приклад: `/weather Kyiv`";
@@ -77,6 +59,37 @@ public class DiscordMessageListener extends ListenerAdapter {
     } else {
       return processFreeText(lowerCaseContent);
     }
+  }
+
+  private String processAddCityCommand(String content) {
+    // Відкидаємо саму команду
+    String args = content.substring(8).trim();
+
+    // Знаходимо останній пробіл, щоб відділити англійську назву
+    int lastSpaceIdx = args.lastIndexOf(' ');
+    if (lastSpaceIdx == -1) {
+      return "Неправильний формат. Використовуйте: /addcity [назва1, назва2...] [english_name]";
+    }
+
+    String eng = args.substring(lastSpaceIdx).trim();
+    String ukrPart = args.substring(0, lastSpaceIdx).trim();
+
+    // Розбиваємо українські назви по комах або пробілах
+    String[] ukrVariations = ukrPart.split("[,\\s]+");
+
+    int addedCount = 0;
+    for (String ukr : ukrVariations) {
+      String trimmedUkr = ukr.toLowerCase().trim();
+      if (!trimmedUkr.isEmpty() && cityTranslationRepository.findByUkrainianName(trimmedUkr).isEmpty()) {
+        CityTranslation translation = new CityTranslation();
+        translation.setUkrainianName(trimmedUkr);
+        translation.setEnglishName(eng);
+        cityTranslationRepository.save(translation);
+        addedCount++;
+      }
+    }
+
+    return "Збережено " + addedCount + " нових варіацій назви для ідентифікатора " + eng + ".";
   }
 
   private String processFreeText(String content) {
@@ -88,17 +101,14 @@ public class DiscordMessageListener extends ListenerAdapter {
 
       logger.info("Вільний текст: вилучено '{}', відправлено до API '{}'", extractedCity, cityForApi);
       return fetchWeatherData(cityForApi);
-    } else if (content.contains("привіт") || content.contains("hello")) {
-      return "Привіт! Я можу надати дані про погоду. Просто запитай мене.";
     }
-
     return null;
   }
 
   private String normalizeCity(String city) {
-    // Якщо місто є в карті перекладу - повертаємо англійський варіант
-    // Якщо немає - повертаємо як є (на випадок якщо ввели англійською або в називному відмінку)
-    return CITY_TRANSLATION_MAP.getOrDefault(city.toLowerCase(), city);
+    return cityTranslationRepository.findByUkrainianName(city.toLowerCase())
+        .map(CityTranslation::getEnglishName)
+        .orElse(city);
   }
 
   private String fetchWeatherData(String city) {
@@ -107,7 +117,7 @@ public class DiscordMessageListener extends ListenerAdapter {
       return "Погода для **" + city + "**:\n```json\n" + weatherData.toString() + "\n```";
     } catch (Exception e) {
       logger.error("API помилка для {}: {}", city, e.getMessage());
-      return "Не вдалося знайти місто '" + city + "'. Спробуйте написати назву англійською або в називному відмінку.";
+      return "Не вдалося знайти місто. Додайте переклад командою /addcity.";
     }
   }
 }
