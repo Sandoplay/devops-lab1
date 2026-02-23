@@ -1,0 +1,9 @@
+services:
+  lab1-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - src/main/resources/env.properties

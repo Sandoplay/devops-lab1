@@ -37,5 +37,4 @@ public class IntegrationService {
     return restTemplate.getForObject(url, Object.class);
   }
 
-
 }
