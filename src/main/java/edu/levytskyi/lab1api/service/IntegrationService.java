@@ -34,7 +34,7 @@ public class IntegrationService {
         .queryParam("units", "metric")
         .toUriString();
 
-    return restTemplate.getForObject(url, Object.class);
+    return restTemplate.getForObject(url, Object.class);//як це тестити йолки палки
   }
 
 }
