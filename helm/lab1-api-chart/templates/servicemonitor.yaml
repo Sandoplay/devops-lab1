@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}-monitor
+  labels:
+    release: prometheus # цей label шукає Prometheus Operator
+spec:
+  selector:
+    matchLabels:
+      app: lab1-api
+  endpoints:
+    - port: http
+      path: /actuator/prometheus # Для Spring Boot шлях до метрик
+      interval: 15s
