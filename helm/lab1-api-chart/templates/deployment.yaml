@@ -1,9 +1,10 @@
+# templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lab1-api-deployment
+  name: {{ .Release.Name }}-lab1-api
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: lab1-api
@@ -14,30 +15,26 @@ spec:
     spec:
       containers:
         - name: lab1-api
-          image: lab1-api:latest
-          imagePullPolicy: Never
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: 8080
+            - containerPort: {{ .Values.service.port }}
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://db:5432/weather_db
+              value: {{ .Values.env.dbUrl }}
             - name: SPRING_DATASOURCE_USERNAME
-              value: weather_user
+              value: {{ .Values.env.dbUser }}
             - name: SPRING_DATASOURCE_PASSWORD
-              value: weather_password
+              value: {{ .Values.env.dbPassword }}
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
               value: update
-            - name: DISCORD_BOT_TOKEN
-              value: "token-here"
-            - name: OPENWEATHER_API_KEY
-              value: "token-here"
           readinessProbe:
             tcpSocket:
-              port: 8080
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: 8080
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 30
             periodSeconds: 20
