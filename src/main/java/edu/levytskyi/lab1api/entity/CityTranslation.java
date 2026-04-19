@@ -21,8 +21,10 @@ public class CityTranslation {
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }
+
   public String getUkrainianName() { return ukrainianName; }
   public void setUkrainianName(String ukrainianName) { this.ukrainianName = ukrainianName; }
+
   public String getEnglishName() { return englishName; }
   public void setEnglishName(String englishName) { this.englishName = englishName; }
 }

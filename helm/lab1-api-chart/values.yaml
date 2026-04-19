@@ -1,0 +1,16 @@
+# values.yaml
+replicaCount: 1
+
+image:
+  repository: lab1-api
+  tag: latest
+  pullPolicy: Never
+
+service:
+  type: NodePort
+  port: 8080
+
+env:
+  dbUrl: jdbc:postgresql://weather-db-postgresql:5432/weather_db
+  dbUser: weather_user
+  dbPassword: weather_password
