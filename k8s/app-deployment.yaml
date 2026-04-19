@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lab1-api-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lab1-api
+  template:
+    metadata:
+      labels:
+        app: lab1-api
+    spec:
+      containers:
+        - name: lab1-api
+          image: lab1-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://db:5432/weather_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: weather_user
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: weather_password
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: DISCORD_BOT_TOKEN
+              value: "token-here"
+            - name: OPENWEATHER_API_KEY
+              value: "token-here"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
