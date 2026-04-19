@@ -28,7 +28,7 @@ public class ApiController {
   }
 
   @GetMapping("/db-check")
-  public ResponseEntity<?> checkDatabaseConnection() {
+  public ResponseEntity<Map<String, Object>> checkDatabaseConnection() {
     try {
       // Рахуємо кількість записів у таблиці city_translation
       long count = cityTranslationRepository.count();
