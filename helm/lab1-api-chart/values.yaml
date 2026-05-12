@@ -1,5 +1,5 @@
 # values.yaml
-replicaCount: 4
+replicaCount: 6
 
 image:
   repository: lab1-api
